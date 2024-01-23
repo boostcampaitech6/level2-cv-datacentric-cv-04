@@ -2,6 +2,7 @@ import os
 import os.path as osp
 import time
 import math
+import json
 import random
 from datetime import timedelta
 from argparse import ArgumentParser
@@ -61,6 +62,15 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
                 learning_rate, max_epochs, save_interval, ignore_tags, wandb_name):
     seed_everything(seed)  # set seed
     
+    # checkpoint directory initialization
+    model_dir = increment_path(os.path.join(model_dir, wandb_name))
+    model_name = model_dir.split("/")[-1]
+    
+    # logging with wandb
+    wandb.init(project="level2_data_centric",
+               name=model_name,
+               config=config)
+    
     dataset = SceneTextDataset(
         data_dir,
         split="train",
@@ -82,11 +92,6 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[max_epochs // 2], gamma=0.1)
-
-    # logging with wandb
-    wandb.init(project="level2_data_centric",
-               name=wandb_name,
-               config=config)
     
     model.train()
     for epoch in range(max_epochs):
@@ -130,12 +135,6 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
             epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
 
         if (epoch + 1) % save_interval == 0:
-            if not osp.exists(model_dir):
-                os.makedirs(model_dir)
-            else:
-                model_dir = increment_path(model_dir)
-                os.makedirs(model_dir)
-
             ckpt_fpath = osp.join(model_dir, "latest.pth")
             torch.save(model.state_dict(), ckpt_fpath)
 
