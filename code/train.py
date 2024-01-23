@@ -66,6 +66,10 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
     model_dir = increment_path(os.path.join(model_dir, wandb_name))
     model_name = model_dir.split("/")[-1]
     
+    # logging with config.json
+    with open(os.path.join(model_dir, f"{model_name}.json"), "w", encoding="utf-8") as f:
+        json.dump(vars(config), f, ensure_ascii=False, indent=4)
+    
     # logging with wandb
     wandb.init(project="level2_data_centric",
                name=model_name,
