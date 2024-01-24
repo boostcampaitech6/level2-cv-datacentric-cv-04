@@ -80,8 +80,7 @@ def main(args):
                                 args.batch_size, split="test")
     ufo_result["images"].update(split_result["images"])
 
-    file_name = f"submission_{args.checkpoint}.csv"
-    with open(os.path.join(output_dir, file_name), "w") as f:
+    with open(os.path.join(output_dir, "output.csv"), "w") as f:
         json.dump(ufo_result, f, indent=4)
 
 

@@ -47,7 +47,7 @@ def parse_args():
 
     return args
 
-
+    
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -56,6 +56,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 def do_training(config, seed, data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
@@ -101,10 +102,6 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
     for epoch in range(max_epochs):
         epoch_loss, epoch_start = 0, time.time()
         for idx, (img, gt_score_map, gt_geo_map, roi_mask) in enumerate(train_loader):
-            img = img.to(non_blocking=True)
-            gt_score_map = gt_score_map.to(non_blocking=True)
-            gt_geo_map = gt_geo_map.to(non_blocking=True)
-            roi_mask = roi_mask.to(non_blocking=True)
             
             loss, extra_info = model.train_step(img, gt_score_map, gt_geo_map, roi_mask)
             optimizer.zero_grad()
@@ -136,7 +133,7 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
         print("Mean loss: {:.4f} || Elapsed time: {} || ETA: {}".format(
             epoch_loss / num_batches,
             timedelta(seconds=epoch_end),
-            timedelta(seconds=epoch_end*(len(train_loader)-epoch+1))))
+            timedelta(seconds=epoch_end*(max_epochs-epoch+1))))
 
         if (epoch + 1) % save_interval == 0:
             ckpt_fpath = osp.join(model_dir, "latest.pth")
