@@ -46,7 +46,7 @@ def do_inference(model, ckpt_fpath, data_dir, input_size, batch_size, split="tes
     images = []
     for image_fpath in tqdm(glob(os.path.join(data_dir, "img/{}/*".format(split)))):
         image_fnames.append(os.path.basename(image_fpath))
-
+        
         images.append(cv2.imread(image_fpath)[:, :, ::-1])
         if len(images) == batch_size:
             by_sample_bboxes.extend(detect(model, images, input_size))
@@ -87,6 +87,4 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args()
     print(args)
-    start = time.time()
     main(args)
-    print(f"Elapsed time: {timedelta(seconds=round(time.time() - start))}")
