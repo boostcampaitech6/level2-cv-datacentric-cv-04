@@ -1,14 +1,15 @@
 import os
-import os.path as osp
 import json
-from argparse import ArgumentParser
+import time
 from glob import glob
+from tqdm import tqdm
+from argparse import ArgumentParser
+from datetime import timedelta
 
 import torch
 import cv2
 from torch import cuda
 from model import EAST
-from tqdm import tqdm
 
 from detect import detect
 from utils import increment_path
@@ -43,9 +44,9 @@ def do_inference(model, ckpt_fpath, data_dir, input_size, batch_size, split="tes
     image_fnames, by_sample_bboxes = [], []
 
     images = []
-    for image_fpath in tqdm(glob(osp.join(data_dir, "img/{}/*".format(split)))):
-        image_fnames.append(osp.basename(image_fpath))
-
+    for image_fpath in tqdm(glob(os.path.join(data_dir, "img/{}/*".format(split)))):
+        image_fnames.append(os.path.basename(image_fpath))
+        
         images.append(cv2.imread(image_fpath)[:, :, ::-1])
         if len(images) == batch_size:
             by_sample_bboxes.extend(detect(model, images, input_size))
@@ -67,13 +68,10 @@ def main(args):
     model = EAST(pretrained=False).to(args.device)
 
     # Get paths to checkpoint files
-    ckpt_fpath = osp.join(args.model_dir, f"{args.checkpoint}.pth")
+    ckpt_fpath = os.path.join(args.model_dir, f"{args.checkpoint}.pth")
 
-    if not osp.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    else:
-        args.output_dir = increment_path(args.output_dir)
-        os.makedirs(args.output_dir)
+    model_name = args.model_dir.split("/")[-1]
+    output_dir = increment_path(os.path.join(args.output_dir, model_name))
 
     print("Inference in progress")
 
@@ -82,11 +80,11 @@ def main(args):
                                 args.batch_size, split="test")
     ufo_result["images"].update(split_result["images"])
 
-    file_name = f"submission_{args.checkpoint}.csv"
-    with open(osp.join(args.output_dir, file_name), "w") as f:
+    with open(os.path.join(output_dir, "output.csv"), "w") as f:
         json.dump(ufo_result, f, indent=4)
 
 
 if __name__ == "__main__":
     args = parse_args()
+    print(args)
     main(args)
