@@ -124,7 +124,8 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
                 "Cls loss": extra_info['cls_loss'],
                 "Angle loss": extra_info['angle_loss'],
                 "IoU loss": extra_info['iou_loss'],
-                "loss": loss_val
+                "loss": loss_val,
+                "Epochs": epoch+1
             })
 
         scheduler.step()
