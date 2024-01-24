@@ -47,7 +47,7 @@ def parse_args():
 
     return args
 
-    
+
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
