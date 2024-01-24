@@ -100,43 +100,43 @@ def do_training(config, seed, data_dir, model_dir, device, image_size, input_siz
     model.train()
     for epoch in range(max_epochs):
         epoch_loss, epoch_start = 0, time.time()
-        with tqdm(total=num_batches) as pbar:
-            for img, gt_score_map, gt_geo_map, roi_mask in train_loader:
-                pbar.set_description("[Epoch {}]".format(epoch + 1))
-                
-                img = img.to(non_blocking=True)
-                gt_score_map = gt_score_map.to(non_blocking=True)
-                gt_geo_map = gt_geo_map.to(non_blocking=True)
-                roi_mask = roi_mask.to(non_blocking=True)
-                
-                loss, extra_info = model.train_step(img, gt_score_map, gt_geo_map, roi_mask)
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
+        for idx, (img, gt_score_map, gt_geo_map, roi_mask) in enumerate(train_loader):
+            img = img.to(non_blocking=True)
+            gt_score_map = gt_score_map.to(non_blocking=True)
+            gt_geo_map = gt_geo_map.to(non_blocking=True)
+            roi_mask = roi_mask.to(non_blocking=True)
+            
+            loss, extra_info = model.train_step(img, gt_score_map, gt_geo_map, roi_mask)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-                loss_val = loss.item()
-                epoch_loss += loss_val
+            loss_val = loss.item()
+            epoch_loss += loss_val
 
-                pbar.update(1)
-                val_dict = {
-                    "Cls loss": extra_info["cls_loss"],
-                    "Angle loss": extra_info["angle_loss"],
-                    "IoU loss": extra_info["iou_loss"]
-                }
-                pbar.set_postfix(val_dict)
-                
-                # logging with wandb
-                wandb.log({
-                    "Cls loss": extra_info['cls_loss'],
-                    "Angle loss": extra_info['angle_loss'],
-                    "IoU loss": extra_info['iou_loss'],
-                    "loss": loss_val
-                })
+            print(
+                f"Epoch[{epoch+1}/{max_epochs}]({idx+1}/{len(train_loader)}) || "
+                f"Loss : {loss_val:4.4f} || "
+                f"Class loss: {extra_info['cls_loss']:4.4f} || "
+                f"Angle loss: {extra_info['angle_loss']:4.4f} || "
+                f"IoU loss: {extra_info['iou_loss']:4.4f}"
+            )
+            
+            # logging with wandb
+            wandb.log({
+                "Cls loss": extra_info['cls_loss'],
+                "Angle loss": extra_info['angle_loss'],
+                "IoU loss": extra_info['iou_loss'],
+                "loss": loss_val
+            })
 
         scheduler.step()
 
-        print("Mean loss: {:.4f} | Elapsed time: {}".format(
-            epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
+        epoch_end = time.time() - epoch_start
+        print("Mean loss: {:.4f} || Elapsed time: {} || ETA: {}".format(
+            epoch_loss / num_batches,
+            timedelta(seconds=epoch_end),
+            timedelta(seconds=epoch_end*(len(train_loader)-epoch+1))))
 
         if (epoch + 1) % save_interval == 0:
             ckpt_fpath = osp.join(model_dir, "latest.pth")
