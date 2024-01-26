@@ -193,7 +193,7 @@ def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device,
             if best_val_loss > mean_val_loss:
                 best_val_loss = mean_val_loss
                 best_val_loss_epoch = epoch+1
-                ckpt_fpath = osp.join(model_dir, f"best.pth")
+                ckpt_fpath = osp.join(model_dir, f"best_epoch_{best_val_loss_epoch}.pth")
                 torch.save(model.state_dict(), ckpt_fpath)
                 counter = 0
             else:
