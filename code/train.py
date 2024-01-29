@@ -64,6 +64,9 @@ def seed_everything(seed):
 
 def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device, image_size, input_size, num_workers, batch_size,
                 patience, learning_rate, max_epochs, save_interval, ignore_tags, wandb_name):
+    if seed == -1:
+        seed = int.from_bytes(os.urandom(4), byteorder="big")
+    print(seed)
     seed_everything(seed)  # set seed
     
     # checkpoint directory initialization
@@ -91,7 +94,7 @@ def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device,
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=num_workers
     )
     
@@ -141,7 +144,7 @@ def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device,
 
             # logging at CLI
             print(
-                f"Epoch[{epoch+1:02}/{max_epochs}]({idx+1:02}/{len(train_loader)}) || "
+                f"Epoch[{epoch+1:03}/{max_epochs}]({idx+1:02}/{len(train_loader)}) || "
                 f"Learning Rate: {scheduler.get_last_lr()[0]} || "
                 f"Train Loss: {loss_val:4.4f} || "
                 f"Train Class loss: {extra_info['cls_loss']:4.4f} || "
@@ -157,7 +160,7 @@ def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device,
                 "loss": loss_val,
                 "Epochs": epoch+1,
                 "Learning Rate": scheduler.get_last_lr()[0],
-                "Seed": torch.seed()
+                "Seed": seed
             })
         
         # ========== valid ==========
