@@ -9,6 +9,7 @@ import cv2
 import albumentations as A
 from torch.utils.data import Dataset
 from shapely.geometry import Polygon
+from skimage.util import random_noise
 
 
 def cal_distance(x1, y1, x2, y2):
@@ -333,6 +334,13 @@ def filter_vertices(vertices, labels, ignore_under=0, drop_under=0):
     return new_vertices, new_labels
 
 
+def add_pepper(image):
+    image = np.array(image)
+    noise_img = random_noise(image, mode='pepper', amount=0.08)
+    noise_img = np.array(255*noise_img, dtype = 'uint8')
+    return Image.fromarray(noise_img)
+
+
 class SceneTextDataset(Dataset):
     def __init__(self, root_dir,
                  split='train',
@@ -389,6 +397,7 @@ class SceneTextDataset(Dataset):
         )
 
         image = Image.open(image_fpath)
+        image = add_pepper(image)
         image, vertices = resize_img(image, vertices, self.image_size)
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
