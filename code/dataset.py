@@ -334,11 +334,13 @@ def filter_vertices(vertices, labels, ignore_under=0, drop_under=0):
     return new_vertices, new_labels
 
 
-def add_pepper(image):
-    image = np.array(image)
-    noise_img = random_noise(image, mode='pepper', amount=0.08)
-    noise_img = np.array(255*noise_img, dtype = 'uint8')
-    return Image.fromarray(noise_img)
+def add_pepper(image, p):
+    if np.random.random() < p:
+        image = np.array(image)
+        noise_img = random_noise(image, mode='pepper', amount=0.08)
+        noise_img = np.array(255*noise_img, dtype = 'uint8')
+        return Image.fromarray(noise_img)
+    return image
 
 
 class SceneTextDataset(Dataset):
@@ -397,7 +399,7 @@ class SceneTextDataset(Dataset):
         )
 
         image = Image.open(image_fpath)
-        image = add_pepper(image)
+        image = add_pepper(image,0.5)
         image, vertices = resize_img(image, vertices, self.image_size)
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
