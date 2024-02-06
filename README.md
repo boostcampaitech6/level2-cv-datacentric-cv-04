@@ -96,14 +96,13 @@ Private
   ```
 code
 ├── utils
-|   └── ensemble
-|       ├── coco2ufo.ipynb
-|       ├── ensemble.ipynb
-|       ├── lift_up_bounding_boxes.ipynb
-|       ├── manual_k_fold.ipynb
-|       ├── ufo2coco.ipynb
-|       ├── visualization.ipynb
-|       └── weighted_boxes_fusion.py
+|   ├── coco2ufo.ipynb
+|   ├── ensemble.ipynb
+|   ├── lift_up_bounding_boxes.ipynb
+|   ├── manual_k_fold.ipynb
+|   ├── ufo2coco.ipynb
+|   ├── visualization.ipynb
+|   └── weighted_boxes_fusion.py
 ├── dataset.py
 ├── detect.py
 ├── deteval.py
