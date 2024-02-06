@@ -1,12 +1,14 @@
 import os.path as osp
 import math
 import json
-from PIL import Image
+import warnings
 
-import torch
-import numpy as np
 import cv2
 import albumentations as A
+from PIL import Image
+from skimage.util import random_noise
+
+import numpy as np
 from torch.utils.data import Dataset
 from shapely.geometry import Polygon
 
@@ -299,7 +301,7 @@ def rotate_img(img, vertices, angle_range=10):
     '''
     center_x = (img.width - 1) / 2
     center_y = (img.height - 1) / 2
-    angle = angle_range * (np.random.rand() * 2 - 1)
+    angle = angle_range * (np.random.rand() * 2 - 1)  # -10 ~ +10
     img = img.rotate(angle, Image.BILINEAR)
     new_vertices = np.zeros(vertices.shape)
     for i, vertice in enumerate(vertices):
@@ -333,6 +335,24 @@ def filter_vertices(vertices, labels, ignore_under=0, drop_under=0):
     return new_vertices, new_labels
 
 
+def add_pepper(image, p):
+    if np.random.random() < p:
+        image = np.array(image)
+        noise_img = random_noise(image, mode='pepper', amount=0.08)
+        noise_img = np.array(255*noise_img, dtype = 'uint8')
+        return Image.fromarray(noise_img)
+    return image
+
+
+def random_choice_augmentations(propability):
+    random_choice = A.OneOf([
+        A.RandomShadow(num_shadows_lower=2, num_shadows_upper=5, always_apply=True),
+        A.RandomGravel(number_of_patches=20, always_apply=True),
+        A.RandomRain(blur_value=1, always_apply=True),
+        A.RandomBrightnessContrast(always_apply=True)
+    ], p=propability)
+    return random_choice
+
 class SceneTextDataset(Dataset):
     def __init__(self, root_dir,
                  split='train',
@@ -341,17 +361,23 @@ class SceneTextDataset(Dataset):
                  ignore_tags=[],
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
-                 color_jitter=True,
-                 normalize=True):
+                 augmentation=False,
+                 binarization=False,
+                 color_jitter=False,
+                 normalize=False):
         with open(osp.join(root_dir, 'ufo/{}.json'.format(split)), 'r') as f:
             anno = json.load(f)
 
         self.anno = anno
         self.image_fnames = sorted(anno['images'].keys())
-        self.image_dir = osp.join(root_dir, 'img', split)
+        self.image_dir = osp.join(root_dir, 'img/train')
 
-        self.image_size, self.crop_size = image_size, crop_size
-        self.color_jitter, self.normalize = color_jitter, normalize
+        self.image_size = image_size
+        self.crop_size = crop_size
+        self.augmentation = augmentation
+        self.binarization = binarization
+        self.color_jitter = color_jitter
+        self.normalize = normalize
 
         self.ignore_tags = ignore_tags
 
@@ -387,8 +413,9 @@ class SceneTextDataset(Dataset):
             ignore_under=self.ignore_under_threshold,
             drop_under=self.drop_under_threshold
         )
-
-        image = Image.open(image_fpath)
+        
+        image = cv2.imread(image_fpath)
+        image = Image.fromarray(image[:, :, ::-1])
         image, vertices = resize_img(image, vertices, self.image_size)
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
@@ -397,14 +424,27 @@ class SceneTextDataset(Dataset):
         if image.mode != 'RGB':
             image = image.convert('RGB')
         image = np.array(image)
-
+        
+        # exception
+        if self.augmentation and any([self.binarization, self.color_jitter, self.normalize]):
+            warnings.warn("Only one of augmentation and others should be declared.")
+            raise ValueError
+        
+        # augmentations
         funcs = []
+        if self.augmentation:
+            funcs.append(random_choice_augmentations(1.0))  # random choice augmentations
+        else:
+            image = add_pepper(image, 0.5)  # add salt & pepper
+            
+        if self.binarization:
+            _, image = cv2.threshold(image, cv2.THRESH_OTSU)  # binarization
         if self.color_jitter:
             funcs.append(A.ColorJitter(0.5, 0.5, 0.5, 0.25))
         if self.normalize:
-            funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+            funcs.append(A.Normalize(mean=(0.89, 0.88, 0.88), std=(0.16, 0.17, 0.17)))
+        
         transform = A.Compose(funcs)
-
         image = transform(image=image)['image']
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)

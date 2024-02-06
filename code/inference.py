@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument("--data_dir", default="../data/medical")
     parser.add_argument("--model_dir", default="checkpoints")
     parser.add_argument("--checkpoint", default="latest")
-    parser.add_argument("--output_dir", default="submissions")
+    parser.add_argument("--output_dir", default="predictions")
     parser.add_argument("--device", default="cuda" if cuda.is_available() else "cpu")
     parser.add_argument("--input_size", type=int, default=2048)
     parser.add_argument("--batch_size", type=int, default=5)
@@ -87,4 +87,7 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args()
     print(args)
+    tik = time.time()
     main(args)
+    tok = time.time()
+    print(f"Inference time: {timedelta(seconds=round(tok - tik, 2))}")
