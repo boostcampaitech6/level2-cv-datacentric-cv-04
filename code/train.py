@@ -42,6 +42,9 @@ def parse_args():
     parser.add_argument("--ignore_tags", type=list, default=["masked", "excluded-region", "maintable", "stamp"])
     parser.add_argument("--wandb_name", type=str, default="default_run_name")
     parser.add_argument("--validation", type=int, default=1)
+    parser.add_argument("--augmentation", type=int, default=0)
+    parser.add_argument("--binarization", type=int, default=0)
+    parser.add_argument("--color_jitter", type=int, default=0)
     parser.add_argument("--normalize", type=int, default=0)
 
     args = parser.parse_args()
@@ -64,7 +67,8 @@ def seed_everything(seed):
 
 
 def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device, image_size, input_size, num_workers, batch_size,
-                patience, learning_rate, max_epochs, save_interval, ignore_tags, wandb_name, validation, normalize):
+                patience, learning_rate, max_epochs, save_interval, ignore_tags, wandb_name, validation, augmentation, binarization,
+                color_jitter, normalize):
     if seed == -1:
         seed = int.from_bytes(os.urandom(4), byteorder="big")
     print(f"seed: {seed}")
@@ -89,6 +93,9 @@ def do_training(config, seed, data_dir, train_ann, valid_ann, model_dir, device,
         image_size=image_size,
         crop_size=input_size,
         ignore_tags=ignore_tags,
+        augmentation=augmentation,
+        binarization=binarization,
+        color_jitter=color_jitter,
         normalize=normalize
     )
     train_dataset = EASTDataset(train_dataset)
